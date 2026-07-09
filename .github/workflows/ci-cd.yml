@@ -1,138 +1,138 @@
-# name: Deploy Node.js E-Commerce App
+name: Deploy Node.js E-Commerce App
 
-# on:
-#   push:
-#     branches: [main, develop, master]
-#   pull_request:
-#     branches: [main, develop, master]
-#   workflow_dispatch: {}
+on:
+  push:
+    branches: [main, develop, master]
+  pull_request:
+    branches: [main, develop, master]
+  workflow_dispatch: {}
 
-# permissions:
-#   id-token: write
-#   contents: read
+permissions:
+  id-token: write
+  contents: read
  
-# env: 
-#   AWS_REGION: eu-north-1
-#   ECR_REPO: nodeapp-ecommerce
-#   ECR_FLYWAY_REPO: nodeapp-ecommerce-flyway
-#   ECS_CLUSTER: ecommerce-cluster
-#   ECS_SERVICE: nodeapp-task-service-gqhc3p11
-#   MIGRATE_TASKDEF: flyway-migrations
-#   ECS_SUBNETS: "subnet-089ffe2707dbaf11d,subnet-04bc6002e55aaddc4"
-#   ECS_SG: sg-0856cf61c3a8f40c2
+env: 
+  AWS_REGION: eu-north-1
+  ECR_REPO: nodeapp-ecommerce
+  ECR_FLYWAY_REPO: nodeapp-ecommerce-flyway
+  ECS_CLUSTER: ecommerce-cluster
+  ECS_SERVICE: nodeapp-task-service-gqhc3p11
+  MIGRATE_TASKDEF: flyway-migrations
+  ECS_SUBNETS: "subnet-089ffe2707dbaf11d,subnet-04bc6002e55aaddc4"
+  ECS_SG: sg-0856cf61c3a8f40c2
 
-# jobs:
-#   # CI runs on every push and PR
-#   ci:
-#     runs-on: ubuntu-latest
-#     steps:
-#       - name: Checkout code
-#         uses: actions/checkout@v4
+jobs:
+  # CI runs on every push and PR
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
          
-#   # Deploy only runs on push to deploy branches (not on PRs)
-#   deploy:
-#     needs: ci
-#     runs-on: ubuntu-latest
-#     if: github.event_name == 'push'
-#     steps:
-#       - name: Checkout code
-#         uses: actions/checkout@v4
+  # Deploy only runs on push to deploy branches (not on PRs)
+  deploy:
+    needs: ci
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-#       - name: Configure AWS credentials
-#         uses: aws-actions/configure-aws-credentials@v4
-#         with:
-#           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-#           aws-region: ${{ env.AWS_REGION }}
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
 
-#       - name: Login to Amazon ECR
-#         id: login-ecr
-#         uses: aws-actions/amazon-ecr-login@v2
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
-#       - name: Build and push Docker image to ECR
-#         env:
-#           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-#           IMAGE_TAG: ${{ github.sha }}
-#         run: |
-#           IMAGE=$REGISTRY/${{ env.ECR_REPO }}:$IMAGE_TAG
-#           LATEST=$REGISTRY/${{ env.ECR_REPO }}:latest
+      - name: Build and push Docker image to ECR
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          IMAGE=$REGISTRY/${{ env.ECR_REPO }}:$IMAGE_TAG
+          LATEST=$REGISTRY/${{ env.ECR_REPO }}:latest
           
-#           docker build -t $IMAGE -t $LATEST .
-#           docker push $REGISTRY/${{ env.ECR_REPO }} --all-tags
+          docker build -t $IMAGE -t $LATEST .
+          docker push $REGISTRY/${{ env.ECR_REPO }} --all-tags
           
-#           echo "IMAGE_URI=$IMAGE" >> $GITHUB_ENV
+          echo "IMAGE_URI=$IMAGE" >> $GITHUB_ENV
 
-#       - name: Build and push Flyway migration image to ECR
-#         env:
-#           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-#           FLYWAY_IMAGE_TAG: ${{ github.sha }}
-#         run: |
-#           FLYWAY_IMAGE=$REGISTRY/${{ env.ECR_FLYWAY_REPO }}:$FLYWAY_IMAGE_TAG
-#           FLYWAY_LATEST=$REGISTRY/${{ env.ECR_FLYWAY_REPO }}:latest
+      - name: Build and push Flyway migration image to ECR
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          FLYWAY_IMAGE_TAG: ${{ github.sha }}
+        run: |
+          FLYWAY_IMAGE=$REGISTRY/${{ env.ECR_FLYWAY_REPO }}:$FLYWAY_IMAGE_TAG
+          FLYWAY_LATEST=$REGISTRY/${{ env.ECR_FLYWAY_REPO }}:latest
           
-#           docker build -f Dockerfile.flyway -t $FLYWAY_IMAGE -t $FLYWAY_LATEST .
-#           docker push $REGISTRY/${{ env.ECR_FLYWAY_REPO }} --all-tags
+          docker build -f Dockerfile.flyway -t $FLYWAY_IMAGE -t $FLYWAY_LATEST .
+          docker push $REGISTRY/${{ env.ECR_FLYWAY_REPO }} --all-tags
           
-#           echo "FLYWAY_IMAGE_URI=$FLYWAY_IMAGE" >> $GITHUB_ENV
+          echo "FLYWAY_IMAGE_URI=$FLYWAY_IMAGE" >> $GITHUB_ENV
 
-#       - name: Run database migrations via ECS task
-#         run: |
-#           TASK_ARN=$(aws ecs run-task \
-#             --cluster ${{ env.ECS_CLUSTER }} \
-#             --task-definition ${{ env.MIGRATE_TASKDEF }} \
-#             --launch-type FARGATE \
-#             --network-configuration "awsvpcConfiguration={subnets=[${{ env.ECS_SUBNETS }}],securityGroups=[${{ env.ECS_SG }}],assignPublicIp=DISABLED}" \
-#             --query 'tasks[0].taskArn' \
-#             --output text)
+      - name: Run database migrations via ECS task
+        run: |
+          TASK_ARN=$(aws ecs run-task \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --task-definition ${{ env.MIGRATE_TASKDEF }} \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=[${{ env.ECS_SUBNETS }}],securityGroups=[${{ env.ECS_SG }}],assignPublicIp=DISABLED}" \
+            --query 'tasks[0].taskArn' \
+            --output text)
           
-#           echo "Migration task started: $TASK_ARN"
+          echo "Migration task started: $TASK_ARN"
           
-#           # Wait for task to complete
-#           aws ecs wait tasks-stopped --cluster ${{ env.ECS_CLUSTER }} --tasks $TASK_ARN
+          # Wait for task to complete
+          aws ecs wait tasks-stopped --cluster ${{ env.ECS_CLUSTER }} --tasks $TASK_ARN
           
-#           # Check task exit code
-#           EXIT_CODE=$(aws ecs describe-tasks \
-#             --cluster ${{ env.ECS_CLUSTER }} \
-#             --tasks $TASK_ARN \
-#             --query 'tasks[0].containers[0].exitCode' \
-#             --output text)
+          # Check task exit code
+          EXIT_CODE=$(aws ecs describe-tasks \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --tasks $TASK_ARN \
+            --query 'tasks[0].containers[0].exitCode' \
+            --output text)
           
-#           echo "Migration task exit code: $EXIT_CODE"
+          echo "Migration task exit code: $EXIT_CODE"
           
-#           if [ "$EXIT_CODE" != "0" ]; then
-#             echo "❌ Migration task failed with exit code $EXIT_CODE"
-#             exit 1
-#           fi
+          if [ "$EXIT_CODE" != "0" ]; then
+            echo "❌ Migration task failed with exit code $EXIT_CODE"
+            exit 1
+          fi
           
-#           echo "✅ Migrations completed successfully"
+          echo "✅ Migrations completed successfully"
 
-#       - name: Update ECS service
-#         run: |
-#           aws ecs update-service \
-#             --cluster ${{ env.ECS_CLUSTER }} \
-#             --service ${{ env.ECS_SERVICE }} \
-#             --force-new-deployment
+      - name: Update ECS service
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ env.ECS_SERVICE }} \
+            --force-new-deployment
 
-#       - name: Wait for service deployment
-#         run: |
-#           aws ecs wait services-stable \
-#             --cluster ${{ env.ECS_CLUSTER }} \
-#             --services ${{ env.ECS_SERVICE }}
+      - name: Wait for service deployment
+        run: |
+          aws ecs wait services-stable \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE }}
           
-#           echo "✅ Service deployed successfully"
+          echo "✅ Service deployed successfully"
 
-#       - name: Verify deployment
-#         run: |
-#           TASK_COUNT=$(aws ecs describe-services \
-#             --cluster ${{ env.ECS_CLUSTER }} \
-#             --services ${{ env.ECS_SERVICE }} \
-#             --query 'services[0].runningCount' \
-#             --output text)
+      - name: Verify deployment
+        run: |
+          TASK_COUNT=$(aws ecs describe-services \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ env.ECS_SERVICE }} \
+            --query 'services[0].runningCount' \
+            --output text)
           
-#           echo "Running tasks: $TASK_COUNT"
+          echo "Running tasks: $TASK_COUNT"
           
-#           if [ "$TASK_COUNT" -eq 0 ]; then
-#             echo "⚠️ Warning: No running tasks detected"
-#             exit 1
-#           fi
+          if [ "$TASK_COUNT" -eq 0 ]; then
+            echo "⚠️ Warning: No running tasks detected"
+            exit 1
+          fi
           
-#           echo "✅ Deployment verified"
+          echo "✅ Deployment verified"
