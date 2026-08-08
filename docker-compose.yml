@@ -22,18 +22,18 @@ services:
         condition: service_healthy
     volumes:
       - ./db/migrations:/flyway/sql
-    command: >-
-      -connectRetries=60
-      -baselineOnMigrate=true
-      -url=jdbc:postgresql://db:5432/app_db
-      -user=app_user
-      -password=app_password
-      migrate
+    environment:
+      FLYWAY_URL: jdbc:postgresql://db:5432/app_db
+      FLYWAY_USER: app_user
+      FLYWAY_PASSWORD: app_password
+      FLYWAY_BASELINE_ON_MIGRATE: "true"
+      FLYWAY_CONNECT_RETRIES: "60"
+    command: migrate
 
   app:
     build: .
     ports:
-      - '3000:3000'
+      - "3000:3000"
     env_file:
       - .env.compose
     depends_on:
