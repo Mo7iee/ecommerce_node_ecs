@@ -79,6 +79,71 @@ http://localhost:3000
 curl http://localhost:3000/health
 ```
 
+## Monitoring with Prometheus and Grafana
+
+This project now exposes Prometheus metrics from the Node.js app and includes a local Prometheus + Grafana stack in Docker Compose.
+
+### 1. Start the full stack
+
+```bash
+docker compose up --build -d
+```
+
+This starts:
+
+- the Node.js application on `http://localhost:3000`
+- Prometheus on `http://localhost:9090`
+- Grafana on `http://localhost:3001`
+
+### 2. Verify the app metrics endpoint
+
+```bash
+curl http://localhost:3000/metrics
+```
+
+You should see Prometheus metrics like `http_requests_total` and `http_request_duration_seconds`.
+
+### 3. Check Prometheus targets
+
+Open:
+
+```text
+http://localhost:9090/targets
+```
+
+You should see the `nodeapp` target as `UP`.
+
+### 4. Open Grafana
+
+Login with:
+
+- username: `admin`
+- password: `admin`
+
+Grafana is preconfigured to use Prometheus as a datasource, and the sample dashboard is auto-loaded from `monitoring/grafana/dashboards/nodeapp-overview.json`.
+
+### 5. View the dashboard
+
+In Grafana, go to:
+
+- Dashboards → Browse → NodeApp Overview
+
+The dashboard includes:
+
+- request rate by route
+- 95th percentile response latency
+- HTTP status code breakdown
+
+### 6. Useful PromQL examples
+
+```promql
+sum(rate(http_requests_total[5m])) by (route)
+
+histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, route))
+
+sum(rate(http_requests_total[5m])) by (status_code)
+```
+
 ## API Endpoints
 
 | Group | Method | Endpoint | Description |
