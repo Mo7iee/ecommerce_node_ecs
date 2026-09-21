@@ -336,6 +336,8 @@ The deployment pipeline performs the following steps automatically:
 
 ### Accessing the app on /health and /products endpoints
 <img width="949" height="213" alt="Screenshot 2026-07-09 222950" src="https://github.com/user-attachments/assets/f2ed32db-f273-469a-9b17-8bd539208297" /> <br> 
+<img width="958" height="215" alt="Screenshot 2026-07-09 223017" src="https://github.com/user-attachments/assets/084c474c-18b7-435b-9086-b7e9066c6db8" />
+
 ## Monitoring with Prometheus and Grafana
 
 This project now exposes Prometheus metrics from the Node.js app and includes a local Prometheus + Grafana stack in Docker Compose.
@@ -400,5 +402,5 @@ histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by 
 
 sum(rate(http_requests_total[5m])) by (status_code)
 ```
-<img width="958" height="215" alt="Screenshot 2026-07-09 223017" src="https://github.com/user-attachments/assets/084c474c-18b7-435b-9086-b7e9066c6db8" />
+
 
